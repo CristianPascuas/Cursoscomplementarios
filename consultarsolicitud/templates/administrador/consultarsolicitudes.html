@@ -1,0 +1,188 @@
+{% extends 'layout/layout.html' %}
+
+{% block content %}
+<main class="contenido-principal">
+  <!-- Título de la sección -->
+  <div class="titulo-seccion">
+    <h2 class="titulo-pagina">CONSULTAR SOLICITUDES</h2>
+    <p class="subtitulo-pagina">Aquí puede consultar el estado de las solicitudes y descargar los documentos correspondientes</p>
+  </div>
+
+  <!-- barra de busqueda por filtros -->
+  <div class="barra-busqueda">
+    <input type="text" class="input-busqueda" placeholder="Buscar Codigo" />
+    <button class="boton-buscar">Buscar</button>
+  </div>
+
+  <!-- Filtros Avanzados -->
+  <div class="filtros-avanzados">
+    <h3>Filtros Avanzados</h3>
+    <div class="contenedor-filtros">
+      <div class="grupo-filtro">
+        <label for="estado">Estado:</label>
+        <select id="estado" class="select-filtro">
+          <option value="">Todos</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+      </div>
+      <!-- filtro por instructor -->
+      <div class="grupo-filtro">
+        <label for="instructor">Instructor:</label>
+        <input type="text" id="instructor" class="input-filtro" placeholder="Nombre del Instructor" />
+      </div>
+      <div class="grupo-filtro">
+        <label for="fecha">Fecha de Creación:</label>
+        <input type="date" id="fecha" class="input-filtro" />
+      </div>
+    </div>
+
+    <div class="contenedor-boton-filtros">
+      <button class="boton-aplicar-filtros">Aplicar Filtros</button>
+    </div>
+  </div>
+
+  <!-- Contenedor de la tabla de fichas -->
+  <div class="contenedor-tabla-fichas">
+    <!-- Tabla de fichas solicitadas -->
+    <table class="tabla-fichas">
+      <thead>
+        <tr>
+          <th>Codigo de Solicitud</th>
+          <th>Codigo del Programa</th>
+          <th>Nombre del Programa</th>
+          <th>Tipo de Programa</th>
+          <th>Instructor</th>
+          <th>Empresa</th>
+          <th>Estado</th>
+          <th>Ficha de Caracterización</th>
+          <th>Excel Masivo</th>
+          <th>Documentos de Aprendices</th>
+          <th>Fecha de Creación</th>
+          <th>Denegar</th>
+          <th>Aprobar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Ficha 1 -->
+        <tr>
+          <td>Codigo de Solicitud</td>
+          <td>Codigo del Programa</td>
+          <td>
+            <a class="enlace-programa" href="infocurso-instructor.html">Nombre del Programa</a>
+          </td>
+          <td>Tipo de Programa</td>
+          <td>Nombre de Instructor</td>
+          <td>Nombre de Empresa</td>
+          <td>
+            <span class="estado-aprobado">Estado del programa</span>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar Ficha</a>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar Formulario Masivo</a>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar PDFs</a>
+          </td>
+          <td>Fecha de Creación de Solicitud</td>
+          <td>
+            <button class="boton-compartir" data-programa="Enviar Observacion">Negar</button>
+          </td>
+          <td>
+            <button class="boton-enviar">Aprobar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal Compartir -->
+<div id="modal-compartir" class="modal-compartir">
+  <div class="contenido-modal">
+    <div class="encabezado-modal">
+      <h3>Enviar Información</h3>
+      <button class="boton-cerrar-modal">&times;</button>
+    </div>
+
+    <div class="cuerpo-modal">
+      <p class="programa-seleccionado">
+        <span id="nombre-programa"></span>
+      </p>
+
+      <!-- Opciones de compartir -->
+      <div class="opciones-compartir">
+        <!-- Opción 1: Compartir con link -->
+        <div class="opcion-compartir">
+          <h4>Enviar Observación al Instructor</h4>
+          <div class="grupo-link">
+            <input type="text" class="input-link" placeholder="Escribe tus observaciones al instructor." />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pie-modal">
+      <button class="boton-enviar">Enviar</button>
+      <button class="boton-cancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript para funcionalidad del modal -->
+<script>
+  // Obtener elementos del DOM
+  const modal = document.getElementById('modal-compartir')
+  const botonesCompartir = document.querySelectorAll('.boton-compartir')
+  const botonCerrar = document.querySelector('.boton-cerrar-modal')
+  const botonCancelar = document.querySelector('.boton-cancelar')
+  const nombrePrograma = document.getElementById('nombre-programa')
+  
+  // Agregar event listeners a todos los botones de compartir
+  botonesCompartir.forEach((boton) => {
+    boton.addEventListener('click', function () {
+      const programa = this.getAttribute('data-programa')
+      nombrePrograma.textContent = programa
+      modal.style.display = 'block'
+    })
+  })
+  
+  // Cerrar modal con el botón X
+  botonCerrar.addEventListener('click', function () {
+    modal.style.display = 'none'
+  })
+  
+  // Cerrar modal con el botón Cancelar
+  botonCancelar.addEventListener('click', function () {
+    modal.style.display = 'none'
+  })
+  
+  // Cerrar modal al hacer click fuera del contenido
+  window.addEventListener('click', function (event) {
+    if (event.target === modal) {
+      modal.style.display = 'none'
+    }
+  })
+  
+  // Funcionalidad de los botones seleccionar
+  const botonesSeleccionar = document.querySelectorAll('.boton-seleccionar')
+  
+  botonesSeleccionar.forEach((boton) => {
+    boton.addEventListener('click', function () {
+      // Remover selección previa
+      botonesSeleccionar.forEach((btn) => {
+        btn.textContent = 'Seleccionar'
+        btn.style.backgroundColor = ''
+      })
+  
+      // Marcar como seleccionado
+      this.textContent = 'Seleccionado'
+      this.style.backgroundColor = '#2e7d32'
+    })
+  })
+</script>
+
+{% endblock %}

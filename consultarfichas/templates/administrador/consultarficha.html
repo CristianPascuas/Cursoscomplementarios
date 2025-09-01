@@ -1,0 +1,136 @@
+{% extends "layout/layout.html" %}
+<!-- Sección principal - Consultar Fichas -->
+ {% block content %}
+<main class="contenido-principal">
+  <!-- Título de la sección -->
+  <div class="titulo-seccion">
+    <h2 class="titulo-pagina">CONSULTAR FICHAS</h2>
+    <p class="subtitulo-pagina">Aquí puede consultar el estado de las fichas y descargar los documentos correspondientes</p>
+  </div>
+
+  <!-- barra de busqueda por filtros -->
+  <div class="barra-busqueda">
+    <input type="text" class="input-busqueda" placeholder="Buscar Codigo" />
+    <button class="boton-buscar">Buscar</button>
+  </div>
+
+  <!-- Filtros Avanzados -->
+  <div class="filtros-avanzados">
+    <h3>Filtros Avanzados</h3>
+    <div class="contenedor-filtros">
+      <div class="grupo-filtro">
+        <label for="estado">Estado:</label>
+        <select id="estado" class="select-filtro">
+          <option value="">Todos</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+      </div>
+      <!-- filtro por instructor -->
+      <div class="grupo-filtro">
+        <label for="instructor">Instructor:</label>
+        <input type="text" id="instructor" class="input-filtro" placeholder="Nombre del Instructor" />
+      </div>
+      <div class="grupo-filtro">
+        <label for="fecha">Fecha de Creación:</label>
+        <input type="date" id="fecha" class="input-filtro" />
+      </div>
+    </div>
+
+    <div class="contenedor-boton-filtros">
+      <button class="boton-aplicar-filtros">Aplicar Filtros</button>
+    </div>
+  </div>
+
+  <!-- Contenedor de la tabla de fichas -->
+  <div class="contenedor-tabla-fichas">
+    <!-- Tabla de fichas solicitadas -->
+    <table class="tabla-fichas">
+      <thead>
+        <tr>
+          <th>Codigo de Solicitud</th>
+          <th>Codigo del Programa</th>
+          <th>Nombre del Programa</th>
+          <th>Tipo de Programa</th>
+          <th>Instructor</th>
+          <th>Empresa</th>
+          <th>Estado</th>
+          <th>Ficha de Caracterización</th>
+          <th>Excel Masivo</th>
+          <th>Documentos de Aprendices</th>
+          <th>Fecha de Creación</th>
+          <th>Denegar</th>
+          <th>Aprobar</th>
+          <th>Codigo de Ficha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Ficha 1 -->
+        <tr>
+          <td>Codigo de Solicitud</td>
+          <td>Codigo del Programa</td>
+          <td>Nombre del Programa</td>
+          <td>Tipo de Programa</td>
+          <td>Nombre de Instructor</td>
+          <td>Nombre de Empresa</td>
+          <td>
+            <span class="estado-aprobado">Estado del programa</span>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar Ficha</a>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar Formulario Masivo</a>
+          </td>
+          <td>
+            <a href="#" class="boton-descargar">Descargar PDFs</a>
+          </td>
+          <td>Fecha de Creación de Solicitud</td>
+          <td>
+            <button class="boton-compartir" data-programa="Enviar Observacion">Negar</button>
+          </td>
+          <td>
+            <button class="boton-enviar">Aprobar</button>
+          </td>
+          <td>
+            <span class="codigo-ficha">Codigo de Ficha al Aprobar</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal Compartir -->
+<div id="modal-compartir" class="modal-compartir">
+  <div class="contenido-modal">
+    <div class="encabezado-modal">
+      <h3>Enviar Información</h3>
+      <button class="boton-cerrar-modal">&times;</button>
+    </div>
+
+    <div class="cuerpo-modal">
+      <p class="programa-seleccionado">
+        <span id="nombre-programa"></span>
+      </p>
+
+      <!-- Opciones de compartir -->
+      <div class="opciones-compartir">
+        <!-- Opción 1: Compartir con link -->
+        <div class="opcion-compartir">
+          <h4>Enviar Observación al Instructor</h4>
+          <div class="grupo-link">
+            <input type="text" class="input-link" placeholder="Escribe tus observaciones al instructor." />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pie-modal">
+      <button class="boton-enviar">Enviar</button>
+      <button class="boton-cancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+{% endblock  %}
