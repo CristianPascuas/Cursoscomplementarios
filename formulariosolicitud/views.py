@@ -25,61 +25,87 @@ def _get_common_context(usuario_tipo, nombre_usuario=None):
     return context
 
 def _crear_solicitud(request, tipo_solicitud_id, template_name, mensaje_exito, usuario_tipo='Instructor'):
+    # Contexto común para GET request
+    context = _get_common_context(usuario_tipo)
+    
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                tipo_programa_id = request.POST.get('tipoPrograma_id')
-                tipo_modalidad = request.POST.get('tipoModalidad')
-                nombre_programa_codigo = request.POST.get('nombrePrograma_codigo')
-                version_programa = request.POST.get('versionPrograma')
-                subsector_economico = request.POST.get('subsectorEconomico')
-                fecha_inicio = request.POST.get('fechaInicio')
-                fecha_finalizacion = request.POST.get('fechaFinalizacion')
-                cupo_aprendices = request.POST.get('cupoAprendices')
-                municipio_formacion = request.POST.get('municipioFormacion')
-                direccion_formacion = request.POST.get('direccionFormacion')
-                tiene_empresa = request.POST.get('tieneEmpresa')
-                empresa_solicitante = request.POST.get('empresaSolicitante', '')
-                tipo_empresa = request.POST.get('tipoEmpresa', '')
-                nombre_responsable = request.POST.get('nombreResponsable', '')
-                correo_responsable = request.POST.get('correoResponsable', '')
-                nit_empresa = request.POST.get('nitEmpresa', '')
-                programa_especial = request.POST.get('programaEspecial')
-                convenio = request.POST.get('convenio', '')
-                nombre_ambiente = request.POST.get('nombreAmbiente')
-                dias_semana = request.POST.getlist('diasSemana[]')
-                horario_curso = request.POST.get('horarioCurso')
-                fechas_ejecucion_mes1 = request.POST.get('fechasEjecucionMes1')
-                fechas_ejecucion_mes2 = request.POST.get('fechasEjecucionMes2', '')
+                # Capturar todos los datos del formulario
+                datos_formulario = {
+                    'tiene_empresa': request.POST.get('tieneEmpresa'),
+                    'nombre_programa_codigo': request.POST.get('nombrePrograma_codigo'),
+                    'subsector_economico': request.POST.get('subsectorEconomico'),
+                    'fecha_inicio': request.POST.get('fechaInicio'),
+                    'fecha_finalizacion': request.POST.get('fechaFinalizacion'),
+                    'cupo_aprendices': request.POST.get('cupoAprendices'),
+                    'municipio_formacion': request.POST.get('municipioFormacion'),
+                    'direccion_formacion': request.POST.get('direccionFormacion'),
+                    'programa_especial': request.POST.get('programaEspecial'),
+                    'convenio': request.POST.get('convenio', ''),
+                    'nombre_ambiente': request.POST.get('nombreAmbiente'),
+                    'dias_semana': request.POST.getlist('diasSemana[]'),
+                    'horario_curso': request.POST.get('horarioCurso'),
+                    'fechas_ejecucion_mes1': request.POST.get('fechasEjecucionMes1'),
+                    'fechas_ejecucion_mes2': request.POST.get('fechasEjecucionMes2', ''),
+                    # Datos de empresa
+                    'empresa_solicitante': request.POST.get('empresaSolicitante', ''),
+                    'tipo_empresa': request.POST.get('tipoEmpresa', ''),
+                    'nombre_responsable': request.POST.get('nombreResponsable', ''),
+                    'correo_responsable': request.POST.get('correoResponsable', ''),
+                    'nit_empresa': request.POST.get('nitEmpresa', ''),
+                }
 
+                # Validaciones centralizadas
+                campos_requeridos = [
+                    ('nombre_programa_codigo', "Debe seleccionar un programa de formación"),
+                    ('municipio_formacion', "Debe seleccionar un municipio de formación"),
+                    ('programa_especial', "Debe seleccionar un programa especial"),
+                    ('nombre_ambiente', "Debe seleccionar un ambiente de formación"),
+                    ('cupo_aprendices', "Debe seleccionar un cupo de aprendices"),
+                ]
+                
+                for campo, mensaje in campos_requeridos:
+                    if not datos_formulario[campo]:
+                        raise ValueError(mensaje)
+                
+                if not datos_formulario['fecha_inicio'] or not datos_formulario['fecha_finalizacion']:
+                    raise ValueError("Las fechas de inicio y finalización son obligatorias")
+
+                # Crear horario
                 horario = Horario.objects.create(
-                    fechainicio=datetime.strptime(fecha_inicio, '%Y-%m-%d').date(),
-                    fechafin=datetime.strptime(fecha_finalizacion, '%Y-%m-%d').date(),
-                    mes1=f"{fechas_ejecucion_mes1} - Días: {', '.join(dias_semana)} - Horario: {horario_curso}",
-                    mes2=fechas_ejecucion_mes2 or None
+                    fechainicio=datetime.strptime(datos_formulario['fecha_inicio'], '%Y-%m-%d').date(),
+                    fechafin=datetime.strptime(datos_formulario['fecha_finalizacion'], '%Y-%m-%d').date(),
+                    mes1=f"{datos_formulario['fechas_ejecucion_mes1']} - Días: {', '.join(datos_formulario['dias_semana'])} - Horario: {datos_formulario['horario_curso']}",
+                    mes2=datos_formulario['fechas_ejecucion_mes2'] or None
                 )
 
+                # Manejar empresa
                 empresa_obj = None
-                if tiene_empresa == 'si':
-                    empresa_obj = Empresa.objects.filter(nombreempresa=empresa_solicitante).first()
-                    if not empresa_obj:
-                        tipo_empresa_obj = Tipoempresa.objects.get(idtipoempresa=tipo_empresa)
-                        nit_valor = int(nit_empresa) if nit_empresa.isdigit() else 0
+                if datos_formulario['tiene_empresa'] == 'si' and datos_formulario['empresa_solicitante']:
+                    empresa_obj = Empresa.objects.filter(nombreempresa=datos_formulario['empresa_solicitante']).first()
+                    if not empresa_obj and datos_formulario['tipo_empresa']:
+                        tipo_empresa_obj = Tipoempresa.objects.get(idtipoempresa=datos_formulario['tipo_empresa'])
+                        nit_valor = int(datos_formulario['nit_empresa']) if datos_formulario['nit_empresa'].isdigit() else 0
                         empresa_obj = Empresa.objects.create(
-                            nombreempresa=empresa_solicitante,
-                            representanteempresa=nombre_responsable,
-                            correoempresa=correo_responsable,
+                            nombreempresa=datos_formulario['empresa_solicitante'],
+                            representanteempresa=datos_formulario['nombre_responsable'],
+                            correoempresa=datos_formulario['correo_responsable'],
                             nitempresa=nit_valor,
                             idtipoempresa=tipo_empresa_obj
                         )
 
-                programa_formacion = Programaformacion.objects.get(codigoprograma=nombre_programa_codigo)
-                modalidad = Modalidad.objects.get(idmodalidad=tipo_modalidad)
-                municipio = Municipio.objects.get(codigomunicipio=municipio_formacion)
-                programa_especial_obj = Programaespecial.objects.get(idespecial=programa_especial)
-                ambiente_obj = Ambiente.objects.filter(idambiente=nombre_ambiente).first() if nombre_ambiente else None
-                tipo_solicitud = Tiposolicitud.objects.get(idtiposolicitud=tipo_solicitud_id)
+                # Obtener objetos relacionados con una sola consulta cada uno
+                objetos_relacionados = {
+                    'programa_formacion': Programaformacion.objects.get(codigoprograma=datos_formulario['nombre_programa_codigo']),
+                    'modalidad': Modalidad.objects.get(idmodalidad=1),
+                    'municipio': Municipio.objects.get(codigomunicipio=datos_formulario['municipio_formacion']),
+                    'programa_especial_obj': Programaespecial.objects.get(idespecial=datos_formulario['programa_especial']),
+                    'ambiente_obj': Ambiente.objects.get(idambiente=datos_formulario['nombre_ambiente']),
+                    'tipo_solicitud': Tiposolicitud.objects.get(idtiposolicitud=tipo_solicitud_id),
+                }
 
+                # Verificar usuario en sesión
                 user_id = request.session.get('user_id')
                 if not user_id:
                     messages.error(request, 'Debe iniciar sesión para crear una solicitud.')
@@ -87,23 +113,22 @@ def _crear_solicitud(request, tipo_solicitud_id, template_name, mensaje_exito, u
 
                 usuario = Usuario.objects.get(idusuario=user_id)
 
-                ultimo_codigo = Solicitud.objects.aggregate(max_codigo=models.Max('codigosolicitud'))['max_codigo']
-                nuevo_codigo = (ultimo_codigo or 0) + 1
-
-                Solicitud.objects.create(
-                    idtiposolicitud=tipo_solicitud,
-                    codigoprograma=programa_formacion,
+                # Crear solicitud
+                solicitud = Solicitud.objects.create(
+                    idtiposolicitud=objetos_relacionados['tipo_solicitud'],
+                    codigosolicitud=None,
+                    codigoprograma=objetos_relacionados['programa_formacion'],
                     idhorario=horario,
-                    cupo=int(cupo_aprendices),
-                    idmodalidad=modalidad,
-                    codigomunicipio=municipio,
-                    direccion=direccion_formacion,
+                    cupo=int(datos_formulario['cupo_aprendices']),
+                    idmodalidad=objetos_relacionados['modalidad'],
+                    codigomunicipio=objetos_relacionados['municipio'],
+                    direccion=datos_formulario['direccion_formacion'],
                     idusuario=usuario,
                     idempresa=empresa_obj,
-                    subsectoreconomico=subsector_economico,
-                    idespecial=programa_especial_obj,
-                    convenio=convenio or None,
-                    ambiente=ambiente_obj,
+                    subsectoreconomico=datos_formulario['subsector_economico'],
+                    idespecial=objetos_relacionados['programa_especial_obj'],
+                    convenio=datos_formulario['convenio'] or None,
+                    ambiente=objetos_relacionados['ambiente_obj'],
                     fechasolicitud=timezone.now().date()
                 )
 
@@ -112,8 +137,7 @@ def _crear_solicitud(request, tipo_solicitud_id, template_name, mensaje_exito, u
 
         except Exception as e:
             messages.error(request, f'Error al crear la solicitud: {str(e)}')
-
-    context = _get_common_context(usuario_tipo, request.session.get('name'))
+    
     return render(request, template_name, context)
 
 # Formularios ADMIN

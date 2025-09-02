@@ -22,7 +22,7 @@
     {% endif %}
 
     <!-- Formulario -->
-    <form class="formulario-ficha" action="{% url 'crearficha' %}" method="post" enctype="multipart/form-data">
+    <form class="formulario-ficha" action="{% url 'crearficharegular' %}" method="post" enctype="multipart/form-data">
       {% csrf_token %}
 
       <!-- Sección 1: Información del Programa -->
@@ -151,7 +151,7 @@
           <select id="departamentoFormacion" name="departamentoFormacion" class="entrada-select" required>
             <option value="">Seleccione el departamento</option>
             {% for departamento in departamentos %}
-              <option value="{{ departamento.codigodepartamento }}">{{ departamento.departamentos }}</option>
+              <option value="{{ departamento.codigodepartamentos }}">{{ departamento.departamentos }}</option>
             {% endfor %}
           </select>
         </div>
@@ -160,7 +160,7 @@
           <select id="municipioFormacion" name="municipioFormacion" class="entrada-select" required>
             <option value="">Seleccione el municipio</option>
             {% for municipio in municipios %}
-              <option value="{{ municipio.codigomunicipio }}" data-departamento="{{ municipio.codigodepartamento.codigodepartamento }}">{{ municipio.municipio }}</option>
+              <option value="{{ municipio.codigomunicipio }}" data-departamento="{{ municipio.codigodepartamento.codigodepartamentos }}">{{ municipio.municipio }}</option>
             {% endfor %}
           </select>
         </div>
@@ -274,194 +274,186 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // Elementos relevantes
-      const departamentoFormacion = document.getElementById('departamentoFormacion')
-      const municipioFormacion = document.getElementById('municipioFormacion')
-      const tieneEmpresa = document.getElementById('tieneEmpresa')
-      const empresaSolicitante = document.getElementById('empresaSolicitante')
-      const tipoEmpresa = document.getElementById('tipoEmpresa')
-      const nombreResponsable = document.getElementById('nombreResponsable')
-      const correoResponsable = document.getElementById('correoResponsable')
-      const nitEmpresa = document.getElementById('nitEmpresa')
-      const cartaSolicitud = document.getElementById('cartaSolicitud')
-      const formulario = document.querySelector('.formulario-ficha')
-    
-      // 1. Filtrar municipios según departamento seleccionado
-      function filtrarMunicipios() {
-        const dep = departamentoFormacion.value.trim()
-        Array.from(municipioFormacion.options).forEach((opt) => {
-          if (!opt.value) return
-          const depOpt = (opt.getAttribute('data-departamento') || '').trim()
-          opt.hidden = dep && depOpt !== dep
-        })
-        municipioFormacion.value = ''
-      }
-    
-      // 2. Mostrar u ocultar campos de empresa según tipo de oferta
-      function toggleEmpresaFields() {
-        const mostrar = tieneEmpresa.value === 'si'
-        const seccionEmpresa = document.getElementById('seccionEmpresa')
-        
-        // Mostrar u ocultar toda la sección de empresa
-        if (seccionEmpresa) {
-          seccionEmpresa.style.display = mostrar ? 'block' : 'none'
-        }
-        
-        // Configurar campos como requeridos o no
-        const camposEmpresa = [empresaSolicitante, tipoEmpresa, nombreResponsable, correoResponsable, nitEmpresa, cartaSolicitud]
-        camposEmpresa.forEach((el) => {
-          if (el) {
-            if (mostrar) {
-              el.setAttribute('required', 'required')
-            } else {
-              el.removeAttribute('required')
-              el.value = '' // Limpiar el campo cuando se oculta
+      // Elementos del DOM - Centralizados
+      const elementos = {
+        departamentoFormacion: document.getElementById('departamentoFormacion'),
+        municipioFormacion: document.getElementById('municipioFormacion'),
+        tieneEmpresa: document.getElementById('tieneEmpresa'),
+        seccionEmpresa: document.getElementById('seccionEmpresa'),
+        camposEmpresa: [
+          document.getElementById('empresaSolicitante'),
+          document.getElementById('tipoEmpresa'),
+          document.getElementById('nombreResponsable'),
+          document.getElementById('correoResponsable'),
+          document.getElementById('nitEmpresa'),
+          document.getElementById('cartaSolicitud')
+        ],
+        formulario: document.querySelector('.formulario-ficha'),
+        modalArea: document.getElementById('modalArea'),
+        modalHoras: document.getElementById('modalHoras')
+      };
+
+      // Funciones principales
+      const funciones = {
+        filtrarMunicipios() {
+          const dep = elementos.departamentoFormacion.value.trim();
+          Array.from(elementos.municipioFormacion.options).forEach((opt) => {
+            if (!opt.value) return;
+            const depOpt = (opt.getAttribute('data-departamento') || '').trim();
+            opt.hidden = dep && depOpt !== dep;
+          });
+          elementos.municipioFormacion.value = '';
+        },
+
+        toggleEmpresaFields() {
+          const mostrar = elementos.tieneEmpresa.value === 'si';
+          if (elementos.seccionEmpresa) {
+            elementos.seccionEmpresa.style.display = mostrar ? 'block' : 'none';
+          }
+          
+          elementos.camposEmpresa.forEach((el) => {
+            if (el) {
+              if (mostrar) {
+                el.setAttribute('required', 'required');
+              } else {
+                el.removeAttribute('required');
+                el.value = '';
+              }
+            }
+          });
+        },
+
+        validarFormulario(e) {
+          // Validar días de la semana
+          const diasChecked = document.querySelectorAll('input[name="diasSemana[]"]:checked');
+          if (diasChecked.length === 0) {
+            e.preventDefault();
+            alert('Debe seleccionar al menos un día de la semana.');
+            return;
+          }
+          
+          // Validar programa seleccionado
+          const codigoPrograma = document.getElementById('nombrePrograma_codigo').value;
+          if (!codigoPrograma) {
+            e.preventDefault();
+            alert('Debe seleccionar un programa desde el modal.');
+            return;
+          }
+          
+          // Validar campos de empresa si es cerrada
+          if (elementos.tieneEmpresa.value === 'si') {
+            const camposRequeridos = [
+              { elemento: elementos.camposEmpresa[0], nombre: 'Empresa Solicitante' },
+              { elemento: elementos.camposEmpresa[1], nombre: 'Tipo de Empresa' },
+              { elemento: elementos.camposEmpresa[2], nombre: 'Nombre del Responsable' },
+              { elemento: elementos.camposEmpresa[3], nombre: 'Correo Electrónico' },
+              { elemento: elementos.camposEmpresa[4], nombre: 'NIT de la Empresa' },
+              { elemento: elementos.camposEmpresa[5], nombre: 'Carta de Solicitud' }
+            ];
+            
+            const faltantes = camposRequeridos
+              .filter(campo => !campo.elemento?.value?.trim())
+              .map(campo => campo.nombre);
+              
+            if (faltantes.length > 0) {
+              e.preventDefault();
+              alert('Faltan campos obligatorios:\\n- ' + faltantes.join('\\n- '));
             }
           }
-        })
-      }
-    
-      // 3. Validaciones al enviar formulario
-      formulario.addEventListener('submit', function (e) {
-        const diasChecked = document.querySelectorAll('input[name="diasSemana[]"]:checked')
-        if (diasChecked.length === 0) {
-          e.preventDefault()
-          alert('Debe seleccionar al menos un día de la semana.')
-          return
         }
-        
-        // Validar que se haya seleccionado un programa desde el modal
-        const codigoPrograma = document.getElementById('nombrePrograma_codigo').value
-        if (!codigoPrograma) {
-          e.preventDefault()
-          alert('Debe seleccionar un programa desde el modal.')
-          return
-        }
-        
-        if (tieneEmpresa.value === 'si') {
-          const faltantes = []
-          if (!empresaSolicitante.value.trim()) faltantes.push('Empresa Solicitante')
-          if (!tipoEmpresa.value) faltantes.push('Tipo de Empresa')
-          if (!nombreResponsable.value.trim()) faltantes.push('Nombre del Responsable')
-          if (!correoResponsable.value.trim()) faltantes.push('Correo Electrónico')
-          if (!nitEmpresa.value.trim()) faltantes.push('NIT de la Empresa')
-          if (!cartaSolicitud.value) faltantes.push('Carta de Solicitud')
-          if (faltantes.length > 0) {
-            e.preventDefault()
-            alert('Faltan campos obligatorios:\n- ' + faltantes.join('\n- '))
-          }
-        }
-      })
-    
-      // 4. Eventos
-      departamentoFormacion.addEventListener('change', filtrarMunicipios)
-      tieneEmpresa.addEventListener('change', toggleEmpresaFields)
-    
-      // Inicialización al cargar la página
-      filtrarMunicipios()
-      toggleEmpresaFields()
-      
-      // Eventos del modal dentro del DOMContentLoaded
-      const modalArea = document.getElementById('modalArea')
-      const modalHoras = document.getElementById('modalHoras')
-      
-      if (modalArea) modalArea.addEventListener('change', filtrarProgramasModal)
-      if (modalHoras) modalHoras.addEventListener('change', filtrarProgramasModal)
-    })
+      };
 
-    // Funciones del modal
-    function abrirModal() {
-      document.getElementById('modalFiltro').style.display = 'block';
-      llenarHorasModal();
-      filtrarProgramasModal();
-    }
-    
-    function cerrarModal() {
-      document.getElementById('modalFiltro').style.display = 'none';
-    }
-    
-    function llenarHorasModal() {
-      const modalHoras = document.getElementById('modalHoras');
-      const programasData = document.querySelectorAll('.programa-data');
-      const horasSet = new Set();
+      // Event listeners
+      elementos.departamentoFormacion.addEventListener('change', funciones.filtrarMunicipios);
+      elementos.tieneEmpresa.addEventListener('change', funciones.toggleEmpresaFields);
+      elementos.formulario.addEventListener('submit', funciones.validarFormulario);
       
-      // Recopilar todas las horas disponibles desde los spans de datos
-      programasData.forEach((span) => {
-        const horas = span.getAttribute('data-horas');
-        if (horas) horasSet.add(horas);
-      });
+      if (elementos.modalArea) elementos.modalArea.addEventListener('change', filtrarProgramasModal);
+      if (elementos.modalHoras) elementos.modalHoras.addEventListener('change', filtrarProgramasModal);
+
+      // Inicialización
+      funciones.filtrarMunicipios();
+      funciones.toggleEmpresaFields();
+    });
+
+    // Funciones del modal - Optimizadas
+    const modal = {
+      abrir() {
+        document.getElementById('modalFiltro').style.display = 'block';
+        this.llenarHoras();
+        filtrarProgramasModal();
+      },
       
-      // Llenar el select de horas del modal
-      modalHoras.innerHTML = '<option value="">Todas las horas</option>';
-      const horasArray = Array.from(horasSet).map(Number).sort((a, b) => a - b);
-      horasArray.forEach((h) => {
-        const opt = document.createElement('option');
-        opt.value = h;
-        opt.textContent = `${h} horas`;
-        modalHoras.appendChild(opt);
-      });
-    }
+      cerrar() {
+        document.getElementById('modalFiltro').style.display = 'none';
+      },
+      
+      llenarHoras() {
+        const modalHoras = document.getElementById('modalHoras');
+        const horasUnicas = [...new Set(
+          Array.from(document.querySelectorAll('.programa-data'))
+            .map(span => span.getAttribute('data-horas'))
+            .filter(Boolean)
+        )];
+        
+        modalHoras.innerHTML = '<option value="">Todas las horas</option>' +
+          horasUnicas
+            .map(Number)
+            .sort((a, b) => a - b)
+            .map(h => `<option value="${h}">${h} horas</option>`)
+            .join('');
+      }
+    };
+
+    // Funciones globales requeridas por onclick
+    function abrirModal() { modal.abrir(); }
+    function cerrarModal() { modal.cerrar(); }
     
     function filtrarProgramasModal() {
-      const modalArea = document.getElementById('modalArea');
-      const modalHoras = document.getElementById('modalHoras');
-      const modalPrograma = document.getElementById('modalPrograma');
-      const programasData = document.querySelectorAll('.programa-data');
-      const area = modalArea.value;
-      const horas = modalHoras.value;
+      const [modalArea, modalHoras, modalPrograma] = [
+        'modalArea', 'modalHoras', 'modalPrograma'
+      ].map(id => document.getElementById(id));
       
-      // Limpiar programas del modal
-      modalPrograma.innerHTML = '';
+      const [area, horas] = [modalArea.value, modalHoras.value];
       
-      // Filtrar y mostrar programas desde los spans de datos
-      programasData.forEach((span) => {
-        const progArea = span.getAttribute('data-area');
-        const progHoras = span.getAttribute('data-horas');
-        const mostrar = (!area || progArea === area) && (!horas || progHoras === horas);
+      const programasFiltrados = Array.from(document.querySelectorAll('.programa-data'))
+        .filter(span => {
+          const progArea = span.getAttribute('data-area');
+          const progHoras = span.getAttribute('data-horas');
+          return (!area || progArea === area) && (!horas || progHoras === horas);
+        })
+        .map(span => {
+          const attrs = ['data-codigo', 'data-nombre', 'data-area', 'data-area-nombre', 'data-horas', 'data-version']
+            .reduce((obj, attr) => ({...obj, [attr]: span.getAttribute(attr) || ''}), {});
+          
+          return `<option value="${attrs['data-codigo']}" ${Object.entries(attrs).map(([k,v]) => `${k}="${v}"`).join(' ')}>
+            ${attrs['data-nombre']}
+          </option>`;
+        });
         
-        if (mostrar) {
-          const newOpt = document.createElement('option');
-          newOpt.value = span.getAttribute('data-codigo');
-          newOpt.textContent = span.getAttribute('data-nombre');
-          newOpt.setAttribute('data-area', progArea);
-          newOpt.setAttribute('data-area-nombre', span.getAttribute('data-area-nombre'));
-          newOpt.setAttribute('data-horas', progHoras);
-          newOpt.setAttribute('data-version', span.getAttribute('data-version') || '');
-          modalPrograma.appendChild(newOpt);
-        }
-      });
+      modalPrograma.innerHTML = programasFiltrados.join('');
     }
     
     function seleccionarPrograma() {
-      const modalPrograma = document.getElementById('modalPrograma');
-      const selected = modalPrograma.selectedOptions[0];
+      const selected = document.getElementById('modalPrograma').selectedOptions[0];
+      if (!selected) return;
       
-      if (selected) {
-        // Llenar los campos de solo lectura del formulario principal
-        const tipoPrograma = document.getElementById('tipoPrograma');
-        const tipoPrograma_id = document.getElementById('tipoPrograma_id');
-        const horasPrograma = document.getElementById('horasPrograma');
-        const nombrePrograma = document.getElementById('nombrePrograma');
-        const nombrePrograma_codigo = document.getElementById('nombrePrograma_codigo');
-        const codigoCurso = document.getElementById('codigoCurso');
-        const versionPrograma = document.getElementById('versionPrograma');
-        
-        // Obtener la versión del programa
-        const version = selected.getAttribute('data-version') || '';
-        
-        // Llenar todos los campos
-        tipoPrograma.value = selected.getAttribute('data-area-nombre') || '';
-        tipoPrograma_id.value = selected.getAttribute('data-area') || '';
-        horasPrograma.value = selected.getAttribute('data-horas') + ' horas';
-        nombrePrograma.value = selected.textContent;
-        nombrePrograma_codigo.value = selected.value;
-        codigoCurso.value = selected.value;
-        versionPrograma.value = version;
-        
-        // Debug: verificar que la versión se esté llenando
-        console.log('Versión del programa seleccionado:', version);
-      }
-      cerrarModal();
+      const campos = {
+        'tipoPrograma': selected.getAttribute('data-area-nombre') || '',
+        'tipoPrograma_id': selected.getAttribute('data-area') || '',
+        'horasPrograma': selected.getAttribute('data-horas') + ' horas',
+        'nombrePrograma': selected.textContent,
+        'nombrePrograma_codigo': selected.value,
+        'codigoCurso': selected.value,
+        'versionPrograma': selected.getAttribute('data-version') || ''
+      };
+      
+      Object.entries(campos).forEach(([id, valor]) => {
+        const elemento = document.getElementById(id);
+        if (elemento) elemento.value = valor;
+      });
+      
+      modal.cerrar();
     }
   </script>
 {% endblock %}
