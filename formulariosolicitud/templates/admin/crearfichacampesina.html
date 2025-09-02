@@ -20,92 +20,111 @@
                 {% endfor %}
             {% endif %}
 
-            <!-- Formulario de creación de ficha regular (sin el contenedor extra) -->
+            <!-- Formulario de creación de ficha campesina -->
             <form class="formulario-ficha" action="{% url 'crearfichacampesina' %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
+                
+                <!-- Campo hidden para modalidad fija -->
+                <input type="hidden" name="tipoModalidad" value="1" />
                 
                 <!-- Sección 1: Información del Programa -->
                 <div class="seccion-formulario">
                     <h3 class="titulo-seccion-form">Información del Programa</h3>
                 
-                    <!-- check tiene empresa? -->
+                    <!-- Tipo de oferta -->
                     <div class="campo-entrada">
-                        <label for="tieneEmpresa" class="etiqueta-campo">¿Curso solicitado por una empresa?*:</label>
+                        <label for="tieneEmpresa" class="etiqueta-campo">Tipo de oferta*:</label>
                         <select id="tieneEmpresa" name="tieneEmpresa" class="entrada-select" required>
                             <option value="">Seleccione una opción</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
+                            <option value="no">Abierta</option>
+                            <option value="si">Cerrada</option>
                         </select>
-                    </div>  
+                    </div>
 
-                    <!-- Tipo de Área/Programa -->
+                    <!-- Botón para abrir el modal de filtros -->
+                    <div class="campo-entrada">
+                        <button type="button" class="boton-modal" onclick="abrirModal()">Filtrar y Seleccionar Programa</button>
+                    </div>
+
+                    <!-- Área del programa (solo lectura) -->
                     <div class="campo-entrada">
                         <label for="tipoPrograma" class="etiqueta-campo">Tipo de Programa*:</label>
-                        <select id="tipoPrograma" name="tipoPrograma" class="entrada-select" required>
-                            <option value="">Seleccione el tipo de Programa</option>
-                            {% for area in areas %}
-                                <option value="{{ area.idarea }}">{{ area.area }}</option>
-                            {% endfor %}
-                        </select>
+                        <input type="text" id="tipoPrograma" name="tipoPrograma" class="entrada-texto" readonly required placeholder="Seleccione desde el modal" />
+                        <input type="hidden" id="tipoPrograma_id" name="tipoPrograma_id" />
                     </div>
 
-                    <!-- Tipo de Modalidad -->
+                    <!-- Horas del programa (solo lectura) -->
                     <div class="campo-entrada">
-                        <label for="tipoModalidad" class="etiqueta-campo">Tipo de Modalidad*:</label>
-                        <select id="tipoModalidad" name="tipoModalidad" class="entrada-select" required>
-                            <option value="">Seleccione la modalidad</option>
-                            {% for modalidad in modalidades %}
-                                <option value="{{ modalidad.idmodalidad }}">{{ modalidad.modalidad }}</option>
-                            {% endfor %}
-                        </select>
+                        <label for="horasPrograma" class="etiqueta-campo">Horas del Programa*:</label>
+                        <input type="text" id="horasPrograma" name="horasPrograma" class="entrada-texto" readonly required placeholder="Se llenará automáticamente" />
                     </div>
 
-                    <!-- Horas del Programa (nuevo filtro) -->
-                    <div class="campo-entrada">
-                        <label for="horasPrograma" class="etiqueta-campo">Horas del Programa:</label>
-                        <select id="horasPrograma" name="horasPrograma" class="entrada-select">
-                            <option value="">Todas las horas</option>
-                            <!-- Las opciones se llenan dinámicamente -->
-                        </select>
-                    </div>
-
-                    
-                    <!-- Nombre del Programa -->
+                    <!-- Nombre del programa (solo lectura) -->
                     <div class="campo-entrada">
                         <label for="nombrePrograma" class="etiqueta-campo">Nombre de Programa*:</label>
-                        <select id="nombrePrograma" name="nombrePrograma" class="entrada-select" required>
-                            <option value="">Seleccione el programa</option>
-                            {% for programa in programas_formacion %}
-                                <option value="{{ programa.codigoprograma }}" 
-                                        data-modalidad="{{ programa.idmodalidad.idmodalidad }}"
-                                        data-area="{{ programa.idarea.idarea }}"
-                                        data-horas="{{ programa.horas }}"
-                                        data-version="{{ programa.verision }}">
-                                    {{ programa.nombreprograma }}
-                                </option>
+                        <input type="text" id="nombrePrograma" name="nombrePrograma" class="entrada-texto" readonly required placeholder="Seleccione desde el modal" />
+                        <input type="hidden" id="nombrePrograma_codigo" name="nombrePrograma_codigo" />
+                        <!-- Datos ocultos para el modal -->
+                        {% for programa in programas_formacion %}
+                            <span class="programa-data" data-codigo="{{ programa.codigoprograma }}" data-area="{{ programa.idarea.idarea }}" data-area-nombre="{{ programa.idarea.area }}" data-horas="{{ programa.horas }}" data-version="{{ programa.verision }}" data-nombre="{{ programa.nombreprograma }}" style="display:none;"></span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Código del curso (llenado automático) -->
+                    <div class="campo-entrada">
+                        <label for="codigoCurso" class="etiqueta-campo">Código de Curso*:</label>
+                        <input type="text" id="codigoCurso" name="codigoCurso" class="entrada-texto" readonly required />
+                    </div>
+
+                    <!-- Versión del programa (llenado automático) -->
+                    <div class="campo-entrada">
+                        <label for="versionPrograma" class="etiqueta-campo">Versión del Programa*:</label>
+                        <input type="text" id="versionPrograma" name="versionPrograma" class="entrada-texto" readonly required />
+                    </div>
+
+                    <!-- Subsector económico -->
+                    <div class="campo-entrada">
+                        <label for="subsectorEconomico" class="etiqueta-campo">Subsector Económico*:</label>
+                        <input type="text" id="subsectorEconomico" name="subsectorEconomico" class="entrada-texto" required />
+                    </div>
+                </div>
+
+                <!-- Sección 4: Empresa (oculta si no es cerrada) -->
+                <div class="seccion-formulario" id="seccionEmpresa">
+                    <h3 class="titulo-seccion-form">Responsable y Empresa</h3>
+                    <div class="campo-entrada" id="campoEmpresaSolicitante">
+                        <label for="empresaSolicitante" class="etiqueta-campo">Empresa Solicitante:</label>
+                        <input type="text" id="empresaSolicitante" name="empresaSolicitante" class="entrada-texto" placeholder="Nombre de la empresa" />
+                    </div>
+                    <div class="campo-entrada" id="campoTipoEmpresa">
+                        <label for="tipoEmpresa" class="etiqueta-campo">Tipo de Empresa:</label>
+                        <select id="tipoEmpresa" name="tipoEmpresa" class="entrada-select">
+                            <option value="">Seleccione una opción</option>
+                            {% for tipo_empresa in tipos_empresa %}
+                                <option value="{{ tipo_empresa.idtipoempresa }}">{{ tipo_empresa.tipoempresa }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <!-- Código de Curso -->
-                    <div class="campo-entrada">
-                        <label for="codigoCurso" class="etiqueta-campo">Código de Curso*:</label>
-                        <input type="text" id="codigoCurso" name="codigoCurso" class="entrada-texto" placeholder="Ej: 001" required readonly>
+                    <div class="campo-entrada" id="campoNombreResponsable">
+                        <label for="nombreResponsable" class="etiqueta-campo">Nombre del Responsable*:</label>
+                        <input type="text" id="nombreResponsable" name="nombreResponsable" class="entrada-texto" placeholder="Nombre completo del responsable" />
                     </div>
-
-                    <!-- Versión del Programa -->
-                    <div class="campo-entrada">
-                        <label for="versionPrograma" class="etiqueta-campo">Versión del Programa*:</label>
-                        <input type="text" id="versionPrograma" name="versionPrograma" class="entrada-texto" placeholder="1.0" required readonly>
+                    <div class="campo-entrada" id="campoCorreoResponsable">
+                        <label for="correoResponsable" class="etiqueta-campo">Correo Electrónico*:</label>
+                        <input type="email" id="correoResponsable" name="correoResponsable" class="entrada-texto" placeholder="ejemplo@gmail.com" />
                     </div>
-
-                    <!-- Subsector Económico -->
-                    <div class="campo-entrada">
-                        <label for="subsectorEconomico" class="etiqueta-campo">Subsector Económico*:</label>
-                        <input type="text" id="subsectorEconomico" name="subsectorEconomico" class="entrada-texto" placeholder="Ej: Tecnologías de la Información" required>
+                    <div class="campo-entrada" id="campoNitEmpresa">
+                        <label for="nitEmpresa" class="etiqueta-campo">NIT de la Empresa:</label>
+                        <input type="text" id="nitEmpresa" name="nitEmpresa" class="entrada-texto" placeholder="Número de NIT de la empresa" />
+                    </div>
+                    <div class="campo-entrada" id="campoCartaSolicitud">
+                        <label for="cartaSolicitud" class="etiqueta-campo">Carta de Solicitud (PDF)*:</label>
+                        <input type="file" id="cartaSolicitud" name="cartaSolicitud" class="entrada-archivo" accept=".pdf" />
+                        <small class="texto-ayuda">Solo PDF. Tamaño máximo: 5MB</small>
                     </div>
                 </div>
-                <!-- Sección 2: Fechas y Modalidad -->
+
+                <!-- Sección 2: Fechas -->
                 <div class="seccion-formulario">
                     <h3 class="titulo-seccion-form">Fechas</h3>
                     
@@ -146,7 +165,7 @@
                         <select id="departamentoFormacion" name="departamentoFormacion" class="entrada-select" required>
                             <option value="">Seleccione el departamento</option>
                             {% for departamento in departamentos %}
-                                <option value="{{ departamento.codigodepartamentos }}">{{ departamento.departamentos }}</option>
+                                <option value="{{ departamento.codigodepartamento }}">{{ departamento.departamentos }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -157,9 +176,7 @@
                         <select id="municipioFormacion" name="municipioFormacion" class="entrada-select" required>
                             <option value="">Seleccione el municipio</option>
                             {% for municipio in municipios %}
-                                <option value="{{ municipio.codigomunicipio }}" data-departamento="{{ municipio.codigodepartamento.codigodepartamentos }}">
-                                    {{ municipio.municipio }}
-                                </option>
+                                <option value="{{ municipio.codigomunicipio }}" data-departamento="{{ municipio.codigodepartamento.codigodepartamento }}">{{ municipio.municipio }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -167,56 +184,10 @@
                     <!-- Dirección de Formación -->
                     <div class="campo-entrada">
                         <label for="direccionFormacion" class="etiqueta-campo">Dirección de Formación*:</label>
-                        <textarea id="direccionFormacion" name="direccionFormacion" class="entrada-textarea" placeholder="Ingrese la dirección completa del lugar de formación" rows="3" required></textarea>
+                        <textarea id="direccionFormacion" name="direccionFormacion" class="entrada-textarea" rows="3" required></textarea>
                     </div>
                 </div>
 
-                <!-- Sección 4: Responsable y Empresa -->
-                <div class="seccion-formulario">
-                    <h3 class="titulo-seccion-form">Responsable y Empresa</h3>
-
-                    <!-- Formulario empresa solo mostrar se muestra si has elegido si -->
-                    <div class="campo-entrada">
-                        <label for="empresaSolicitante" class="etiqueta-campo">Empresa Solicitante:</label>
-                        <input type="text" id="empresaSolicitante" name="empresaSolicitante" class="entrada-texto" placeholder="Nombre de la empresa">
-                    </div>
-
-                    <!-- Tipo de empresa -->
-
-                    <div class="campo-entrada">
-                        <label for="tipoEmpresa" class="etiqueta-campo">Tipo de Empresa:</label>
-                        <select id="tipoEmpresa" name="tipoEmpresa" class="entrada-select">
-                            <option value="">Seleccione una opción</option>
-                            {% for tipo_empresa in tipos_empresa %}
-                                <option value="{{ tipo_empresa.idtipoempresa }}">{{ tipo_empresa.tipoempresa }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Nombre Responsable -->
-                    <div class="campo-entrada">
-                        <label for="nombreResponsable" class="etiqueta-campo">Nombre del Responsable*:</label>
-                        <input type="text" id="nombreResponsable" name="nombreResponsable" class="entrada-texto" placeholder="Nombre completo del responsable" >
-                    </div>
-
-                    <!-- Correo -->
-                    <div class="campo-entrada">
-                        <label for="correoResponsable" class="etiqueta-campo">Correo Electrónico*:</label>
-                        <input type="email" id="correoResponsable" name="correoResponsable" class="entrada-texto" placeholder="ejemplo@gmail.com" >
-                    </div>
-
-                    <!-- NIT de empresa -->
-                    <div class="campo-entrada">
-                        <label for="nitEmpresa" class="etiqueta-campo">NIT de la Empresa:</label>
-                        <input type="text" id="nitEmpresa" name="nitEmpresa" class="entrada-texto" placeholder="Número de NIT de la empresa">
-                    </div>
-
-                    <div class="campo-entrada">
-                        <label for="cartaSolicitud" class="etiqueta-campo">Carta de Solicitud de la Empresa (PDF)*:</label>
-                        <input type="file" id="cartaSolicitud" name="cartaSolicitud" class="entrada-archivo" accept=".pdf" required>
-                        <small class="texto-ayuda">Solo se permiten archivos PDF. Tamaño máximo: 5MB</small>
-                    </div>
-                </div>
                 <!-- Sección 5: Programa Especial -->
                 <div class="seccion-formulario">
                     <h3 class="titulo-seccion-form">Programa Especial</h3>
@@ -240,305 +211,287 @@
                 </div>
 
                 <!-- Sección 6: Ambiente de Formación -->
-                <!-- Solo mostrar si la modalidad es Presencial o Mixta -->
                 <div class="seccion-formulario">
-                    <!-- Sección 6: Ambiente de Formación -->
-                    <!-- Solo mostrar si la modalidad es Presencial o Mixta -->
-                    <div class="seccion-formulario">
-                        <h3 class="titulo-seccion-form">Ambiente de Formación</h3>
-                        
-                        <!-- Nombre del Ambiente -->
-                        <div class="campo-entrada">
-                            <label for="nombreAmbiente" class="etiqueta-campo">Nombre del Ambiente*:</label>
-                            <select id="nombreAmbiente" name="nombreAmbiente" class="entrada-select" required>
-                                <option value="">Seleccione el nombre del ambiente</option>
-                                {% for ambiente in ambientes %}
-                                    <option value="{{ ambiente.idambiente }}">{{ ambiente.ambiente }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
+                    <h3 class="titulo-seccion-form">Ambiente de Formación</h3>
+                    
+                    <!-- Nombre del Ambiente -->
+                    <div class="campo-entrada">
+                        <label for="nombreAmbiente" class="etiqueta-campo">Nombre del Ambiente*:</label>
+                        <select id="nombreAmbiente" name="nombreAmbiente" class="entrada-select" required>
+                            <option value="">Seleccione el nombre del ambiente</option>
+                            {% for ambiente in ambientes %}
+                                <option value="{{ ambiente.idambiente }}">{{ ambiente.ambiente }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+                </div>
 
-                    <!-- Sección 7: Programación -->
-                    <div class="seccion-formulario">
-                        <h3 class="titulo-seccion-form">Programación del Curso</h3>
+                <!-- Sección 7: Programación -->
+                <div class="seccion-formulario">
+                    <h3 class="titulo-seccion-form">Programación del Curso</h3>
                         
                         <!-- Días de la Semana -->
                         <div class="campo-entrada">
-                            <label class="etiqueta-campo">Días de la Semana de Programación*:</label>
+                            <label class="etiqueta-campo">Días de la Semana*:</label>
                             <div class="contenedor-checkboxes">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="lunes"> Lunes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="martes"> Martes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="miercoles"> Miércoles
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="jueves"> Jueves
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="viernes"> Viernes
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="sabado"> Sábado
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="diasSemana[]" value="domingo"> Domingo
-                                </label>
+                                <label><input type="checkbox" name="diasSemana[]" value="lunes" />Lunes</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="martes" />Martes</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="miercoles" />Miércoles</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="jueves" />Jueves</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="viernes" />Viernes</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="sabado" />Sábado</label>
+                                <label><input type="checkbox" name="diasSemana[]" value="domingo" />Domingo</label>
                             </div>
                         </div>
 
                         <!-- Horario del Curso -->
                         <div class="campo-entrada">
-                            <label for="horarioCurso" class="etiqueta-campo">Horario del Curso de Formación*:</label>
-                            <input type="text" id="horarioCurso" name="horarioCurso" class="entrada-texto" placeholder="Ej: 08:00 AM - 12:00 PM" required>
+                            <label for="horarioCurso" class="etiqueta-campo">Horario del Curso*:</label>
+                            <input type="text" id="horarioCurso" name="horarioCurso" class="entrada-texto" placeholder="08:00 AM - 12:00 PM" required>
                         </div>
 
                         <!-- Fechas de Ejecución Mes 1 -->
                         <div class="campo-entrada">
-                            <label for="fechasEjecucionMes1" class="etiqueta-campo">Fechas de Ejecución de la Formación (Mes 1)*:</label>
-                            <input type="text" id="fechasEjecucionMes1" name="fechasEjecucionMes1" class="entrada-texto" placeholder="Ej: 01/08/2025 - 31/08/2025" required>
+                            <label for="fechasEjecucionMes1" class="etiqueta-campo">Fechas (Mes 1)*:</label>
+                            <input type="text" id="fechasEjecucionMes1" name="fechasEjecucionMes1" class="entrada-texto" placeholder="01/08/2025 - 31/08/2025" required>
                         </div>
 
                         <!-- Fechas de Ejecución Mes 2 -->
                         <div class="campo-entrada">
-                            <label for="fechasEjecucionMes2" class="etiqueta-campo">Fechas de Ejecución de la Formación (Mes 2):</label>
-                            <input type="text" id="fechasEjecucionMes2" name="fechasEjecucionMes2" class="entrada-texto" placeholder="Ej: 01/09/2025 - 30/09/2025">
+                            <label for="fechasEjecucionMes2" class="etiqueta-campo">Fechas (Mes 2):</label>
+                            <input type="text" id="fechasEjecucionMes2" name="fechasEjecucionMes2" class="entrada-texto" placeholder="01/09/2025 - 30/09/2025">
                         </div>
                     </div>
+
                     <!-- Botones del formulario -->
                     <div class="contenedor-botones-formulario">
-                        <a href="{% url 'crearfichacampesina' %}" class="boton-cancelar">Cancelar</a>
+                        <a href="{% url 'crearfichainstructor' %}" class="boton-cancelar">Cancelar</a>
                         <button type="submit" class="boton-enviar">Enviar Solicitud</button>
-                    </div>                   
+                    </div>
                 </form>
-            </div>
+    
+    {% comment %}Modal{% endcomment %}
+    <div id="modalFiltro" class="modal" style="display:none;">
+      <div class="modal-contenido">
+        <span class="cerrar-modal" onclick="cerrarModal()">&times;</span>
+        <h3>Filtrar Programa de Formación</h3>
+
+        <!-- Área -->
+        <label for="modalArea">Área del Programa:</label>
+        <select id="modalArea" class="entrada-select">
+          <option value="">Seleccione un área</option>
+          {% for area in areas %}
+            <option value="{{ area.idarea }}">{{ area.area }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Horas -->
+        <label for="modalHoras">Horas del Programa:</label>
+        <select id="modalHoras" class="entrada-select">
+          <option value="">Seleccione horas</option>
+        </select>
+
+        <!-- Programas filtrados -->
+        <label for="modalPrograma">Programas Disponibles:</label>
+        <select id="modalPrograma" class="entrada-select" size="5" style="height:auto;">
+          <!-- Llenado dinámico -->
+        </select>
+
+        <button type="button" class="boton-seleccionar" onclick="seleccionarPrograma()">Seleccionar Programa</button>
+      </div>
+    </div>
         </main>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Referencias a los elementos
-    const tipoPrograma = document.getElementById('tipoPrograma');
-    const tipoModalidad = document.getElementById('tipoModalidad');
-    const nombrePrograma = document.getElementById('nombrePrograma');
-    const horasPrograma = document.getElementById('horasPrograma');
-    const codigoCurso = document.getElementById('codigoCurso');
-    const versionPrograma = document.getElementById('versionPrograma');
-    const departamentoFormacion = document.getElementById('departamentoFormacion');
-    const municipioFormacion = document.getElementById('municipioFormacion');
-    const tieneEmpresa = document.getElementById('tieneEmpresa');
+    document.addEventListener('DOMContentLoaded', function () {
+      // Elementos relevantes
+      const departamentoFormacion = document.getElementById('departamentoFormacion')
+      const municipioFormacion = document.getElementById('municipioFormacion')
+      const tieneEmpresa = document.getElementById('tieneEmpresa')
+      const empresaSolicitante = document.getElementById('empresaSolicitante')
+      const tipoEmpresa = document.getElementById('tipoEmpresa')
+      const nombreResponsable = document.getElementById('nombreResponsable')
+      const correoResponsable = document.getElementById('correoResponsable')
+      const nitEmpresa = document.getElementById('nitEmpresa')
+      const cartaSolicitud = document.getElementById('cartaSolicitud')
+      const formulario = document.querySelector('.formulario-ficha')
     
-    // Referencias a campos de empresa
-    const empresaSolicitante = document.getElementById('empresaSolicitante');
-    const tipoEmpresa = document.getElementById('tipoEmpresa');
-    const nombreResponsable = document.getElementById('nombreResponsable');
-    const correoResponsable = document.getElementById('correoResponsable');
-    const nitEmpresa = document.getElementById('nitEmpresa');
-    const cartaSolicitud = document.getElementById('cartaSolicitud');
-
-    // Función para mostrar/ocultar campos de empresa
-    function toggleCamposEmpresa() {
-        if (!tieneEmpresa) return;
+      // 1. Filtrar municipios según departamento seleccionado
+      function filtrarMunicipios() {
+        const dep = departamentoFormacion.value.trim()
+        Array.from(municipioFormacion.options).forEach((opt) => {
+          if (!opt.value) return
+          const depOpt = (opt.getAttribute('data-departamento') || '').trim()
+          opt.hidden = dep && depOpt !== dep
+        })
+        municipioFormacion.value = ''
+      }
+    
+      // 2. Mostrar u ocultar campos de empresa según tipo de oferta
+      function toggleEmpresaFields() {
+        const mostrar = tieneEmpresa.value === 'si'
+        const seccionEmpresa = document.getElementById('seccionEmpresa')
         
-        const mostrar = tieneEmpresa.value === 'si';
+        // Mostrar u ocultar toda la sección de empresa
+        if (seccionEmpresa) {
+          seccionEmpresa.style.display = mostrar ? 'block' : 'none'
+        }
         
-        // Lista de elementos de empresa
-        const elementosEmpresa = [
-            empresaSolicitante,
-            tipoEmpresa, 
-            nombreResponsable,
-            correoResponsable,
-            nitEmpresa,
-            cartaSolicitud
-        ];
-        
-        elementosEmpresa.forEach(function(elemento) {
-            if (elemento) {
-                const contenedor = elemento.closest('.campo-entrada');
-                if (contenedor) {
-                    contenedor.style.display = mostrar ? 'block' : 'none';
-                }
-                
-                // Manejar atributo required
-                if (mostrar) {
-                    elemento.setAttribute('required', 'required');
-                } else {
-                    elemento.removeAttribute('required');
-                    elemento.value = ''; // Limpiar valor cuando se oculta
-                }
-            }
-        });
-    }
-
-    // Función para filtrar programas por tipo y modalidad
-    function filtrarProgramas() {
-        if (!tipoPrograma || !tipoModalidad || !nombrePrograma) return;
-        
-        const tipoSeleccionado = tipoPrograma.value;
-        const modalidadSeleccionada = tipoModalidad.value;
-        const horasSeleccionadas = horasPrograma ? horasPrograma.value : '';
-        
-        const opciones = nombrePrograma.querySelectorAll('option');
-        
-        // Limpiar selección actual
-        nombrePrograma.value = '';
-        limpiarCamposReadonly();
-        
-        opciones.forEach(function(opcion) {
-            if (opcion.value === '') {
-                opcion.style.display = 'block';
-                return;
-            }
-            
-            const areaPrograma = opcion.getAttribute('data-area');
-            const modalidadPrograma = opcion.getAttribute('data-modalidad');
-            const horasProg = opcion.getAttribute('data-horas');
-            
-            if ((!tipoSeleccionado || areaPrograma === tipoSeleccionado) &&
-                (!modalidadSeleccionada || modalidadPrograma === modalidadSeleccionada) &&
-                (!horasSeleccionadas || horasProg === horasSeleccionadas)) {
-                opcion.style.display = 'block';
+        // Configurar campos como requeridos o no
+        const camposEmpresa = [empresaSolicitante, tipoEmpresa, nombreResponsable, correoResponsable, nitEmpresa, cartaSolicitud]
+        camposEmpresa.forEach((el) => {
+          if (el) {
+            if (mostrar) {
+              el.setAttribute('required', 'required')
             } else {
-                opcion.style.display = 'none';
+              el.removeAttribute('required')
+              el.value = '' // Limpiar el campo cuando se oculta
             }
-        });
-        // Si después de filtrar solo hay una opción visible (además del placeholder), seleccionarla automáticamente
-        const visibles = Array.from(opciones).filter(o => o.value !== '' && o.style.display !== 'none');
-        if (visibles.length === 1) {
-            visibles[0].selected = true;
-            llenarCamposReadonly();
-        }
-    }
-
-    // Función para llenar campos readonly
-    function llenarCamposReadonly() {
-        if (!nombrePrograma) return;
-        
-        const opcionSeleccionada = nombrePrograma.selectedOptions[0];
-        if (opcionSeleccionada && opcionSeleccionada.value !== '') {
-            const horas = opcionSeleccionada.getAttribute('data-horas');
-            const version = opcionSeleccionada.getAttribute('data-version');
-            const codigo = opcionSeleccionada.value;
-            
-            if (versionPrograma) versionPrograma.value = version || '';
-            if (codigoCurso) codigoCurso.value = codigo || '';
-        }
-    }
-
-    // Construir dinámicamente las opciones del select de horas según los programas disponibles
-    function construirSelectHoras() {
-        if (!horasPrograma || !nombrePrograma) return;
-        const opciones = nombrePrograma.querySelectorAll('option[data-horas]');
-        const setHoras = new Set();
-        opciones.forEach(o => {
-            const h = o.getAttribute('data-horas');
-            if (h) setHoras.add(h);
-        });
-        // Guardar selección previa
-        const previa = horasPrograma.value;
-        // Limpiar (dejando primera opción)
-        horasPrograma.innerHTML = '<option value="">Todas las horas</option>';
-        Array.from(setHoras).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(h => {
-            const opt = document.createElement('option');
-            opt.value = h;
-            opt.textContent = h + ' horas';
-            horasPrograma.appendChild(opt);
-        });
-        // Restaurar si aún existe
-        if (previa && setHoras.has(previa)) {
-            horasPrograma.value = previa;
-        }
-    }
-
-    // Función para limpiar campos readonly
-    function limpiarCamposReadonly() {
-        if (versionPrograma) versionPrograma.value = '';
-        if (codigoCurso) codigoCurso.value = '';
-    }
-
-    // Función para filtrar municipios por departamento
-    function filtrarMunicipios() {
-        if (!departamentoFormacion || !municipioFormacion) return;
-        
-        const departamentoSeleccionado = departamentoFormacion.value;
-        const opciones = municipioFormacion.querySelectorAll('option');
-        
-        // Limpiar selección actual
-        municipioFormacion.value = '';
-        
-        opciones.forEach(function(opcion) {
-            if (opcion.value === '') {
-                opcion.style.display = 'block';
-                return;
-            }
-            
-            const departamentoMunicipio = opcion.getAttribute('data-departamento');
-            
-            if (!departamentoSeleccionado || departamentoMunicipio === departamentoSeleccionado) {
-                opcion.style.display = 'block';
-            } else {
-                opcion.style.display = 'none';
-            }
-        });
-    }
-
-    // Event listeners con verificación
-    if (tipoPrograma) tipoPrograma.addEventListener('change', filtrarProgramas);
-    if (tipoModalidad) tipoModalidad.addEventListener('change', filtrarProgramas);
-    if (horasPrograma) horasPrograma.addEventListener('change', filtrarProgramas);
-    if (nombrePrograma) nombrePrograma.addEventListener('change', llenarCamposReadonly);
-    if (departamentoFormacion) departamentoFormacion.addEventListener('change', filtrarMunicipios);
-    if (tieneEmpresa) tieneEmpresa.addEventListener('change', toggleCamposEmpresa);
+          }
+        })
+      }
     
-    // Validación del formulario
-    const formulario = document.querySelector('.formulario-ficha');
-    if (formulario) {
-        formulario.addEventListener('submit', function(e) {
-            let isValid = true;
-            let mensajeError = '';
-            
-            // Validar que al menos un día de la semana esté seleccionado
-            const diasSeleccionados = document.querySelectorAll('input[name="diasSemana[]"]:checked');
-            if (diasSeleccionados.length === 0) {
-                mensajeError += 'Debe seleccionar al menos un día de la semana.\n';
-                isValid = false;
-            }
-            
-            // Validar campos de empresa si está seleccionado "Sí"
-            if (tieneEmpresa && tieneEmpresa.value === 'si') {
-                const camposEmpresaRequeridos = [
-                    {elemento: empresaSolicitante, nombre: 'Empresa Solicitante'},
-                    {elemento: tipoEmpresa, nombre: 'Tipo de Empresa'},
-                    {elemento: nombreResponsable, nombre: 'Nombre del Responsable'},
-                    {elemento: correoResponsable, nombre: 'Correo Electrónico'},
-                    {elemento: nitEmpresa, nombre: 'NIT de la Empresa'},
-                    {elemento: cartaSolicitud, nombre: 'Carta de Solicitud'}
-                ];
-                
-                camposEmpresaRequeridos.forEach(function(campo) {
-                    if (campo.elemento && !campo.elemento.value.trim()) {
-                        mensajeError += `El campo "${campo.nombre}" es requerido cuando hay empresa.\n`;
-                        isValid = false;
-                    }
-                });
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Por favor corrija los siguientes errores:\n\n' + mensajeError);
-            }
-        });
+      // 3. Validaciones al enviar formulario
+      formulario.addEventListener('submit', function (e) {
+        const diasChecked = document.querySelectorAll('input[name="diasSemana[]"]:checked')
+        if (diasChecked.length === 0) {
+          e.preventDefault()
+          alert('Debe seleccionar al menos un día de la semana.')
+          return
+        }
+        
+        // Validar que se haya seleccionado un programa desde el modal
+        const codigoPrograma = document.getElementById('nombrePrograma_codigo').value
+        if (!codigoPrograma) {
+          e.preventDefault()
+          alert('Debe seleccionar un programa desde el modal.')
+          return
+        }
+        
+        if (tieneEmpresa.value === 'si') {
+          const faltantes = []
+          if (!empresaSolicitante.value.trim()) faltantes.push('Empresa Solicitante')
+          if (!tipoEmpresa.value) faltantes.push('Tipo de Empresa')
+          if (!nombreResponsable.value.trim()) faltantes.push('Nombre del Responsable')
+          if (!correoResponsable.value.trim()) faltantes.push('Correo Electrónico')
+          if (!nitEmpresa.value.trim()) faltantes.push('NIT de la Empresa')
+          if (!cartaSolicitud.value) faltantes.push('Carta de Solicitud')
+          if (faltantes.length > 0) {
+            e.preventDefault()
+            alert('Faltan campos obligatorios:\n- ' + faltantes.join('\n- '))
+          }
+        }
+      })
+    
+      // 4. Eventos
+      departamentoFormacion.addEventListener('change', filtrarMunicipios)
+      tieneEmpresa.addEventListener('change', toggleEmpresaFields)
+    
+      // Inicialización al cargar la página
+      filtrarMunicipios()
+      toggleEmpresaFields()
+      
+      // Eventos del modal dentro del DOMContentLoaded
+      const modalArea = document.getElementById('modalArea')
+      const modalHoras = document.getElementById('modalHoras')
+      
+      if (modalArea) modalArea.addEventListener('change', filtrarProgramasModal)
+      if (modalHoras) modalHoras.addEventListener('change', filtrarProgramasModal)
+    })
+
+    // Funciones del modal
+    function abrirModal() {
+      document.getElementById('modalFiltro').style.display = 'block';
+      llenarHorasModal();
+      filtrarProgramasModal();
     }
     
-    // Configuración inicial
-    construirSelectHoras();
-    filtrarProgramas();
-    filtrarMunicipios();
-    toggleCamposEmpresa(); // Ocultar campos de empresa inicialmente
-});
-</script>
+    function cerrarModal() {
+      document.getElementById('modalFiltro').style.display = 'none';
+    }
+    
+    function llenarHorasModal() {
+      const modalHoras = document.getElementById('modalHoras');
+      const programasData = document.querySelectorAll('.programa-data');
+      const horasSet = new Set();
+      
+      // Recopilar todas las horas disponibles desde los spans de datos
+      programasData.forEach((span) => {
+        const horas = span.getAttribute('data-horas');
+        if (horas) horasSet.add(horas);
+      });
+      
+      // Llenar el select de horas del modal
+      modalHoras.innerHTML = '<option value="">Todas las horas</option>';
+      const horasArray = Array.from(horasSet).map(Number).sort((a, b) => a - b);
+      horasArray.forEach((h) => {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = `${h} horas`;
+        modalHoras.appendChild(opt);
+      });
+    }
+    
+    function filtrarProgramasModal() {
+      const modalArea = document.getElementById('modalArea');
+      const modalHoras = document.getElementById('modalHoras');
+      const modalPrograma = document.getElementById('modalPrograma');
+      const programasData = document.querySelectorAll('.programa-data');
+      const area = modalArea.value;
+      const horas = modalHoras.value;
+      
+      // Limpiar programas del modal
+      modalPrograma.innerHTML = '';
+      
+      // Filtrar y mostrar programas desde los spans de datos
+      programasData.forEach((span) => {
+        const progArea = span.getAttribute('data-area');
+        const progHoras = span.getAttribute('data-horas');
+        const mostrar = (!area || progArea === area) && (!horas || progHoras === horas);
+        
+        if (mostrar) {
+          const newOpt = document.createElement('option');
+          newOpt.value = span.getAttribute('data-codigo');
+          newOpt.textContent = span.getAttribute('data-nombre');
+          newOpt.setAttribute('data-area', progArea);
+          newOpt.setAttribute('data-area-nombre', span.getAttribute('data-area-nombre'));
+          newOpt.setAttribute('data-horas', progHoras);
+          newOpt.setAttribute('data-version', span.getAttribute('data-version') || '');
+          modalPrograma.appendChild(newOpt);
+        }
+      });
+    }
+    
+    function seleccionarPrograma() {
+      const modalPrograma = document.getElementById('modalPrograma');
+      const selected = modalPrograma.selectedOptions[0];
+      
+      if (selected) {
+        // Llenar los campos de solo lectura del formulario principal
+        const tipoPrograma = document.getElementById('tipoPrograma');
+        const tipoPrograma_id = document.getElementById('tipoPrograma_id');
+        const horasPrograma = document.getElementById('horasPrograma');
+        const nombrePrograma = document.getElementById('nombrePrograma');
+        const nombrePrograma_codigo = document.getElementById('nombrePrograma_codigo');
+        const codigoCurso = document.getElementById('codigoCurso');
+        const versionPrograma = document.getElementById('versionPrograma');
+        
+        // Obtener la versión del programa
+        const version = selected.getAttribute('data-version') || '';
+        
+        // Llenar todos los campos
+        tipoPrograma.value = selected.getAttribute('data-area-nombre') || '';
+        tipoPrograma_id.value = selected.getAttribute('data-area') || '';
+        horasPrograma.value = selected.getAttribute('data-horas') + ' horas';
+        nombrePrograma.value = selected.textContent;
+        nombrePrograma_codigo.value = selected.value;
+        codigoCurso.value = selected.value;
+        versionPrograma.value = version;
+        
+        // Debug: verificar que la versión se esté llenando
+        console.log('Versión del programa seleccionado:', version);
+      }
+      cerrarModal();
+    }
+  </script>
 
 {% endblock content %}
